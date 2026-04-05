@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
 import feedparser
@@ -67,6 +67,7 @@ class TwitterScraper(BaseScraper):
 
     def _fetch_sync(self) -> list[RawArticle]:
         limit = min(settings.max_articles_per_source, 10)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
 
         for instance in NITTER_INSTANCES:
             feed_url = f"{instance}/{self._account}/rss"
@@ -81,6 +82,11 @@ class TwitterScraper(BaseScraper):
                     summary = _clean_tweet(entry.get("summary", "") or title)
                     if not url or not summary:
                         continue
+                    published_at = _parse_nitter_date(entry)
+                    if published_at:
+                        pub_utc = published_at.replace(tzinfo=timezone.utc)
+                        if pub_utc < cutoff:
+                            continue
                     articles.append(
                         RawArticle(
                             url=url,
@@ -88,7 +94,7 @@ class TwitterScraper(BaseScraper):
                             source_name=self.source_name,
                             source_type="twitter",
                             raw_text=summary[:2000],
-                            published_at=_parse_nitter_date(entry),
+                            published_at=published_at,
                         )
                     )
                 return articles

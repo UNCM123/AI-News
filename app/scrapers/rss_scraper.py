@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
 import feedparser
@@ -69,17 +70,24 @@ class RssScraper(BaseScraper):
         feed = feedparser.parse(self._feed_url)
         articles = []
         limit = settings.max_articles_per_source
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
 
         for entry in feed.entries[:limit]:
             url = entry.get("link", "")
             title = entry.get("title", "").strip()
             if not url or not title:
                 continue
+
+            published_at = _parse_date(entry)
+            # Skip articles older than 24 hours (if date is available)
+            if published_at:
+                pub_utc = published_at.replace(tzinfo=timezone.utc)
+                if pub_utc < cutoff:
+                    continue
+
             summary = entry.get("summary", "") or entry.get("description", "")
             content_list = entry.get("content", [])
             full_text = content_list[0].get("value", "") if content_list else summary
-            # Strip HTML tags simply
-            import re
             clean = re.sub(r"<[^>]+>", " ", full_text or summary)
             clean = re.sub(r"\s+", " ", clean).strip()
 
@@ -90,7 +98,7 @@ class RssScraper(BaseScraper):
                     source_name=self.source_name,
                     source_type="rss",
                     raw_text=clean[:4000],
-                    published_at=_parse_date(entry),
+                    published_at=published_at,
                 )
             )
         return articles

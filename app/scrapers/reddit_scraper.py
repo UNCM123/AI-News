@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import praw
 
@@ -48,12 +48,16 @@ class RedditScraper(BaseScraper):
         reddit = self._get_reddit()
         articles: list[RawArticle] = []
         limit = settings.max_articles_per_source
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
 
         for sub_name in SUBREDDITS:
             try:
                 subreddit = reddit.subreddit(sub_name)
                 for post in subreddit.hot(limit=limit):
                     if post.score < MIN_UPVOTES or post.stickied:
+                        continue
+                    post_time = datetime.fromtimestamp(post.created_utc, tz=timezone.utc)
+                    if post_time < cutoff:
                         continue
                     text = post.selftext or post.title
                     if post.url and not post.is_self:

@@ -1,8 +1,8 @@
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Set
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,11 +72,15 @@ async def build_or_update_digest(db: AsyncSession, target_date: Optional[date] =
         digest = Digest(date=target_date)
         db.add(digest)
 
-    # Fetch today's articles (all unassigned + newly assigned)
+    # Fetch articles from the last 24 hours
+    # Use published_at if available, fall back to scraped_at for blogs without dates
+    cutoff = datetime.utcnow() - timedelta(hours=24)
     result = await db.execute(
         select(Article).where(
-            Article.scraped_at >= datetime.combine(target_date, datetime.min.time()),
-            Article.scraped_at < datetime.combine(target_date, datetime.max.time()),
+            or_(
+                Article.published_at >= cutoff,
+                and_(Article.published_at == None, Article.scraped_at >= cutoff),
+            )
         )
     )
     articles = result.scalars().all()

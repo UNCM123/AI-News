@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from bs4 import BeautifulSoup
@@ -80,6 +80,29 @@ def _extract_title(soup: BeautifulSoup) -> str:
     return tag.get_text(strip=True) if tag else ""
 
 
+def _extract_published_date(soup: BeautifulSoup) -> datetime | None:
+    """Try to extract article publish date from meta tags or <time> elements."""
+    # Open Graph / article meta tag
+    for prop in ("article:published_time", "og:article:published_time", "datePublished"):
+        tag = soup.find("meta", property=prop) or soup.find("meta", attrs={"name": prop})
+        if tag:
+            val = tag.get("content", "")
+            try:
+                return datetime.fromisoformat(val.replace("Z", "+00:00")).astimezone(timezone.utc)
+            except Exception:
+                pass
+    # <time datetime="..."> element
+    time_tag = soup.find("time", attrs={"datetime": True})
+    if time_tag:
+        try:
+            return datetime.fromisoformat(
+                time_tag["datetime"].replace("Z", "+00:00")
+            ).astimezone(timezone.utc)
+        except Exception:
+            pass
+    return None
+
+
 async def _fetch_article(client: httpx.AsyncClient, url: str, source_name: str) -> RawArticle | None:
     try:
         resp = await client.get(url, headers=HEADERS, timeout=15, follow_redirects=True)
@@ -90,7 +113,17 @@ async def _fetch_article(client: httpx.AsyncClient, url: str, source_name: str) 
         text = _extract_text(soup)
         if not title:
             return None
-        return RawArticle(url=url, title=title, source_name=source_name, source_type="blog", raw_text=text)
+
+        published_at = _extract_published_date(soup)
+        # Skip if we found a date and it's older than 24 hours
+        if published_at and published_at < datetime.now(timezone.utc) - timedelta(hours=24):
+            return None
+
+        pub_naive = published_at.replace(tzinfo=None) if published_at else None
+        return RawArticle(
+            url=url, title=title, source_name=source_name,
+            source_type="blog", raw_text=text, published_at=pub_naive
+        )
     except Exception as exc:
         logger.debug(f"[Blog] fetch {url} failed: {exc}")
         return None
