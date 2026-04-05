@@ -1,0 +1,26 @@
+{% set cat_slug = category | lower | replace(' & ', '-') | replace(' ', '-') %}
+{% set cat_class_map = {
+  'Models & Research': 'cat-models',
+  'Products & Tools': 'cat-products',
+  'Industry News': 'cat-industry',
+  'Community': 'cat-community'
+} %}
+{% set cat_class = cat_class_map.get(category, 'cat-industry') %}
+
+<section class="category-section {{ cat_class }}" aria-labelledby="cat-{{ cat_slug }}">
+  <div class="category-header">
+    <div class="category-dot" aria-hidden="true"></div>
+    <h2 class="category-title" id="cat-{{ cat_slug }}">{{ category }}</h2>
+    <span class="category-count">{{ articles | length }} article{% if articles | length != 1 %}s{% endif %}</span>
+  </div>
+
+  {% if articles %}
+  <div class="articles-grid">
+    {% for article in articles %}
+      {% include 'partials/article_card.html' %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">No articles in this category yet.</div>
+  {% endif %}
+</section>

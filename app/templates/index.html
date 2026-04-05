@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}AI News Digest — {{ now.strftime('%B %d, %Y') }}{% endblock %}
+
+{% block content %}
+<div class="layout">
+
+  <!-- Main feed -->
+  <div class="main-feed">
+
+    {% if digest %}
+    <!-- Hero summary -->
+    <div class="hero">
+      <div class="hero-label">Daily Digest</div>
+      <div class="hero-date">
+        {{ digest.date.strftime('%B') }} <span>{{ digest.date.strftime('%d') }}</span>, {{ digest.date.strftime('%Y') }}
+      </div>
+      <div class="hero-subtitle">
+        Generated {{ digest.generated_at.strftime('%H:%M UTC') }} · {{ digest.article_count }} articles from {{ digest.articles | map(attribute='source_name') | unique | list | length }} sources
+      </div>
+
+      {% if digest.headline_summary %}
+      <p class="hero-summary">{{ digest.headline_summary }}</p>
+      {% endif %}
+
+      <div class="hero-stats">
+        {% for category in categories %}
+          {% set count = articles_by_category.get(category, []) | length %}
+          {% if count > 0 %}
+          <div class="stat">
+            <div class="stat-value">{{ count }}</div>
+            <div class="stat-label">{{ category }}</div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Category sections -->
+    {% for category in categories %}
+      {% set articles = articles_by_category.get(category, []) %}
+      {% if articles %}
+        {% include 'partials/category_section.html' %}
+      {% endif %}
+    {% endfor %}
+
+    {% else %}
+    <!-- Empty state -->
+    <div class="no-digest">
+      <div class="no-digest-icon">📡</div>
+      <h2>Collecting AI News…</h2>
+      <p>The first scrape is running in the background. Refresh in a minute to see today's AI digest.</p>
+      <form method="POST" action="/refresh" style="display:inline">
+        <button type="submit" class="btn-refresh" style="font-size:0.9rem;padding:10px 20px">
+          ↻ Check Now
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+  </div><!-- /.main-feed -->
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div class="sidebar-card">
+      <div class="sidebar-title">Past Digests</div>
+      <ul class="digest-list">
+        {% for d in recent_digests %}
+        <li class="digest-list-item {% if digest and d.date == digest.date %}active{% endif %}">
+          <a href="/digest/{{ d.date.isoformat() }}">
+            <span>{{ d.date.strftime('%b %d') }}</span>
+            <span class="count">{{ d.article_count }}</span>
+          </a>
+        </li>
+        {% else %}
+        <li style="font-size:0.8rem;color:var(--text-dim);font-family:var(--font-mono);padding:8px 0">
+          No past digests yet.
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-title">Active Sources</div>
+      <div class="sources-list">
+        <span>Reddit (10 subs)</span>
+        <span>Anthropic Blog</span>
+        <span>OpenAI Blog</span>
+        <span>Google DeepMind</span>
+        <span>Google Gemini</span>
+        <span>Meta AI Blog</span>
+        <span>Hugging Face</span>
+        <span>Mistral AI</span>
+        <span>Microsoft AI</span>
+        <span>xAI / Grok</span>
+        <span>Lovable.dev</span>
+        <span>Cursor Blog</span>
+        <span>ElevenLabs</span>
+        <span>Perplexity</span>
+        <span>Twitter/X (14 accounts)</span>
+        <span>+ 15 more sources</span>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+{% endblock %}

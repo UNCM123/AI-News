@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}AI Digest — {{ target_date.strftime('%B %d, %Y') }}{% endblock %}
+
+{% block content %}
+<div class="layout">
+
+  <div class="main-feed">
+
+    {% if digest %}
+    <div class="hero">
+      <div class="hero-label">
+        <a href="/" style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.7rem">← Latest</a>
+        &nbsp;·&nbsp; Archive
+      </div>
+      <div class="hero-date">
+        {{ digest.date.strftime('%B') }} <span>{{ digest.date.strftime('%d') }}</span>, {{ digest.date.strftime('%Y') }}
+      </div>
+      <div class="hero-subtitle">
+        Generated {{ digest.generated_at.strftime('%H:%M UTC') }} · {{ digest.article_count }} articles
+      </div>
+      {% if digest.headline_summary %}
+      <p class="hero-summary">{{ digest.headline_summary }}</p>
+      {% endif %}
+    </div>
+
+    {% for category in categories %}
+      {% set articles = articles_by_category.get(category, []) %}
+      {% if articles %}
+        {% include 'partials/category_section.html' %}
+      {% endif %}
+    {% endfor %}
+
+    {% else %}
+    <div class="no-digest">
+      <div class="no-digest-icon">📅</div>
+      <h2>No digest for {{ target_date.strftime('%B %d, %Y') }}</h2>
+      <p>There are no articles recorded for this date. Try browsing a different day.</p>
+      <a href="/" class="btn-refresh" style="display:inline-flex;margin-top:8px">← Back to latest</a>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-card">
+      <div class="sidebar-title">Past Digests</div>
+      <ul class="digest-list">
+        {% for d in recent_digests %}
+        <li class="digest-list-item {% if d.date == target_date %}active{% endif %}">
+          <a href="/digest/{{ d.date.isoformat() }}">
+            <span>{{ d.date.strftime('%b %d') }}</span>
+            <span class="count">{{ d.article_count }}</span>
+          </a>
+        </li>
+        {% else %}
+        <li style="font-size:0.8rem;color:var(--text-dim);font-family:var(--font-mono);padding:8px 0">
+          No past digests yet.
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </aside>
+
+</div>
+{% endblock %}

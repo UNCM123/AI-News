@@ -1,0 +1,26 @@
+{% set badge_class = 'badge-' + article.source_type %}
+<article class="article-card">
+  <div class="card-meta">
+    <span class="source-badge {{ badge_class }}">{{ article.source_type }}</span>
+    <span class="card-source-name" title="{{ article.source_name }}">{{ article.source_name }}</span>
+    <span class="card-time">
+      {% if article.published_at %}
+        {{ article.published_at.strftime('%b %d') }}
+      {% else %}
+        {{ article.scraped_at.strftime('%b %d') }}
+      {% endif %}
+    </span>
+  </div>
+
+  <h3 class="card-title">{{ article.title }}</h3>
+
+  {% if article.summary %}
+  <p class="card-summary">{{ article.summary }}</p>
+  {% else %}
+  <p class="card-summary" style="opacity:0.4;font-style:italic">Summarizing…</p>
+  {% endif %}
+
+  <a href="{{ article.url }}" class="card-link" target="_blank" rel="noopener noreferrer">
+    Read original
+  </a>
+</article>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AI News Aggregator — daily digest from Reddit, company blogs, and top AI sources, summarized by Claude." />
+  <title>{% block title %}AI News Digest{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="/" class="site-logo" aria-label="AI News Digest home">
+        <div class="logo-icon" aria-hidden="true">⚡</div>
+        AI<span>News</span>
+      </a>
+
+      <div class="header-meta">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Live</span>
+        <span>·</span>
+        <span>Updated every 6h</span>
+      </div>
+
+      <form method="POST" action="/refresh" style="margin:0">
+        <button type="submit" class="btn-refresh" aria-label="Refresh news now">
+          ↻ Refresh Now
+        </button>
+      </form>
+    </div>
+  </header>
+
+  <!-- Toast for refresh confirmation -->
+  {% if request.query_params.get('refreshed') %}
+  <div class="toast" role="status" aria-live="polite">
+    ✓ Refresh triggered — new articles will appear shortly.
+  </div>
+  {% endif %}
+
+  <!-- Main content -->
+  <main class="container" id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <p>
+      Powered by <a href="https://www.anthropic.com" target="_blank" rel="noopener">Claude</a>
+      &nbsp;·&nbsp;
+      Sources: Reddit, OpenAI, Anthropic, Google, Meta, Hugging Face, and more
+      &nbsp;·&nbsp;
+      <a href="/api/digest/latest" target="_blank">JSON API</a>
+    </p>
+  </footer>
+
+</body>
+</html>
