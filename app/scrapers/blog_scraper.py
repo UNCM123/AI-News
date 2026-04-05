@@ -85,7 +85,7 @@ async def _fetch_article(client: httpx.AsyncClient, url: str, source_name: str) 
         resp = await client.get(url, headers=HEADERS, timeout=15, follow_redirects=True)
         if resp.status_code != 200:
             return None
-        soup = BeautifulSoup(resp.text, "lxml")
+        soup = BeautifulSoup(resp.text, "html.parser")
         title = _extract_title(soup)
         text = _extract_text(soup)
         if not title:
@@ -112,7 +112,7 @@ class BlogScraper(BaseScraper):
                 resp = await client.get(cfg["url"], headers=HEADERS, follow_redirects=True)
                 if resp.status_code != 200:
                     return []
-                soup = BeautifulSoup(resp.text, "lxml")
+                soup = BeautifulSoup(resp.text, "html.parser")
                 links = soup.select(cfg["link_css"])
                 seen: set[str] = set()
                 article_urls: list[str] = []
