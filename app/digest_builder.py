@@ -3,6 +3,7 @@ from datetime import date, datetime
 from typing import Dict, List, Optional, Set
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Article, Digest
@@ -20,7 +21,15 @@ async def get_existing_urls(db: AsyncSession) -> Set[str]:
 async def save_articles(db: AsyncSession, raw_articles: List[RawArticle]) -> List[Article]:
     """Deduplicate, summarize, and persist new articles. Returns saved articles."""
     existing_urls = await get_existing_urls(db)
-    new_raw = [a for a in raw_articles if a.url not in existing_urls]
+
+    # Also deduplicate within this batch itself (multiple scrapers may find same URL)
+    seen_in_batch: Set[str] = set()
+    new_raw = []
+    for a in raw_articles:
+        if a.url not in existing_urls and a.url not in seen_in_batch:
+            seen_in_batch.add(a.url)
+            new_raw.append(a)
+
     logger.info(f"[Digest] {len(raw_articles)} scraped, {len(new_raw)} new after dedup")
 
     saved: List[Article] = []
@@ -38,15 +47,16 @@ async def save_articles(db: AsyncSession, raw_articles: List[RawArticle]) -> Lis
             published_at=raw.published_at,
             scraped_at=datetime.utcnow(),
         )
-        db.add(article)
-        saved.append(article)
+        try:
+            db.add(article)
+            await db.commit()
+            await db.refresh(article)
+            saved.append(article)
+        except IntegrityError:
+            await db.rollback()
+            logger.debug(f"[Digest] skipped duplicate: {raw.url}")
 
-    if saved:
-        await db.commit()
-        for a in saved:
-            await db.refresh(a)
-        logger.info(f"[Digest] saved {len(saved)} new articles")
-
+    logger.info(f"[Digest] saved {len(saved)} new articles")
     return saved
 
 
