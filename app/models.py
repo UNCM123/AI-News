@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import List, Optional
 
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,11 +12,11 @@ class Digest(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     date: Mapped[date] = mapped_column(Date, unique=True, nullable=False)
-    headline_summary: Mapped[str | None] = mapped_column(Text)
+    headline_summary: Mapped[Optional[str]] = mapped_column(Text)
     article_count: Mapped[int] = mapped_column(Integer, default=0)
     generated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
-    articles: Mapped[list["Article"]] = relationship("Article", back_populates="digest")
+    articles: Mapped[List["Article"]] = relationship("Article", back_populates="digest")
 
 
 class Article(Base):
@@ -25,12 +26,12 @@ class Article(Base):
     url: Mapped[str] = mapped_column(String(2048), unique=True, nullable=False)
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     source_name: Mapped[str] = mapped_column(String(128), nullable=False)
-    source_type: Mapped[str] = mapped_column(String(32), nullable=False)  # reddit/rss/blog/twitter
-    category: Mapped[str | None] = mapped_column(String(64))
-    raw_text: Mapped[str | None] = mapped_column(Text)
-    summary: Mapped[str | None] = mapped_column(Text)
-    published_at: Mapped[datetime | None] = mapped_column(DateTime)
+    source_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    category: Mapped[Optional[str]] = mapped_column(String(64))
+    raw_text: Mapped[Optional[str]] = mapped_column(Text)
+    summary: Mapped[Optional[str]] = mapped_column(Text)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     scraped_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    digest_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("digests.id"), nullable=True)
+    digest_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("digests.id"), nullable=True)
 
-    digest: Mapped["Digest | None"] = relationship("Digest", back_populates="articles")
+    digest: Mapped[Optional["Digest"]] = relationship("Digest", back_populates="articles")
