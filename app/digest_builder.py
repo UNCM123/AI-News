@@ -1,5 +1,6 @@
 import logging
 from datetime import date, datetime
+from typing import Dict, List, Optional, Set
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,18 +12,18 @@ from app.summarizer import generate_digest_summary, summarize_article
 logger = logging.getLogger(__name__)
 
 
-async def get_existing_urls(db: AsyncSession) -> set[str]:
+async def get_existing_urls(db: AsyncSession) -> Set[str]:
     result = await db.execute(select(Article.url))
     return {row[0] for row in result.fetchall()}
 
 
-async def save_articles(db: AsyncSession, raw_articles: list[RawArticle]) -> list[Article]:
+async def save_articles(db: AsyncSession, raw_articles: List[RawArticle]) -> List[Article]:
     """Deduplicate, summarize, and persist new articles. Returns saved articles."""
     existing_urls = await get_existing_urls(db)
     new_raw = [a for a in raw_articles if a.url not in existing_urls]
     logger.info(f"[Digest] {len(raw_articles)} scraped, {len(new_raw)} new after dedup")
 
-    saved: list[Article] = []
+    saved: List[Article] = []
     for raw in new_raw:
         text = raw.raw_text or raw.title
         summary, category = await summarize_article(raw.title, text, raw.source_name)
@@ -49,7 +50,7 @@ async def save_articles(db: AsyncSession, raw_articles: list[RawArticle]) -> lis
     return saved
 
 
-async def build_or_update_digest(db: AsyncSession, target_date: date | None = None) -> Digest:
+async def build_or_update_digest(db: AsyncSession, target_date: Optional[date] = None) -> Digest:
     """Create or update today's digest with all articles from today."""
     if target_date is None:
         target_date = date.today()
@@ -75,7 +76,7 @@ async def build_or_update_digest(db: AsyncSession, target_date: date | None = No
         article.digest_id = digest.id if digest.id else None
 
     # Group by category for summary generation
-    by_category: dict[str, list] = {}
+    by_category: Dict[str, list] = {}
     for article in articles:
         cat = article.category or "Industry News"
         by_category.setdefault(cat, []).append(article)

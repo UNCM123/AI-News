@@ -1,4 +1,5 @@
 import logging
+from typing import Dict, Optional, Tuple
 
 import anthropic
 
@@ -8,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 CATEGORIES = ["Models & Research", "Products & Tools", "Industry News", "Community"]
 
-_client: anthropic.AsyncAnthropic | None = None
+_client: Optional[anthropic.AsyncAnthropic] = None
 
 
 def get_client() -> anthropic.AsyncAnthropic:
@@ -18,7 +19,7 @@ def get_client() -> anthropic.AsyncAnthropic:
     return _client
 
 
-async def summarize_article(title: str, text: str, source: str) -> tuple[str, str]:
+async def summarize_article(title: str, text: str, source: str) -> Tuple[str, str]:
     """Returns (2-3 sentence summary, category)."""
     if not settings.anthropic_api_key:
         return ("No summary available (ANTHROPIC_API_KEY not set).", "Industry News")
@@ -57,7 +58,7 @@ CATEGORY: <one category from the list>"""
         return ("Summary unavailable.", "Industry News")
 
 
-async def generate_digest_summary(articles_by_category: dict[str, list]) -> str:
+async def generate_digest_summary(articles_by_category: Dict[str, list]) -> str:
     """Returns a 3-4 sentence overview of the day's biggest AI developments."""
     if not settings.anthropic_api_key:
         return "AI digest summary unavailable (ANTHROPIC_API_KEY not set)."
